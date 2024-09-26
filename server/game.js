@@ -177,7 +177,7 @@ function gameLogic(game) {
     }
 }
 
-export async function runGame(game, updateFn, isSimulation) {
+export async function runGame(game, updateFn, isSimulation, useAi=true) {
     const players = [game.player1, game.player2]
     let isRoundOver = game.turn == 2;
     isRoundOver ||= game.player1.action !== ACTIONS.ATTACK || game.player2.action !== ACTIONS.ATTACK;
@@ -222,7 +222,6 @@ export async function runGame(game, updateFn, isSimulation) {
     // Update basic gameplay
     game.round = isRoundOver ? game.round + 1 : game.round
     game.turn = isRoundOver ? 1 : 2
-    game.lastTick = new Date()
 
     // Update players' cards
     if (isRoundOver) {
@@ -264,17 +263,19 @@ export async function runGame(game, updateFn, isSimulation) {
     // Player 1 AI
     game.player1.action = ACTIONS.DEFEND
     game.player2.action = ACTIONS.DEFEND
-    if (isRoundOver) {
-        game.player1.action = (
-            (game.player1.card1.value >= 7 && game.player1.card1.suit == game.sharedCard.suit) ||
-            (game.player1.card1.value >= 7 && game.player1.card1.suit != game.sharedCard.suit) ||
-            game.player1.card1.value == game.sharedCard.value)
-            ? ACTIONS.ATTACK : ACTIONS.DEFEND
-    } else {
-        const hand1 = computeHand(game.sharedCard, game.player1.card1, game.player1.card2)
-        const thresholdHand = { type: HAND_TYPES.PAIR, values: [2, 1, 1] }
-        game.player1.action = compareHands(hand1, thresholdHand) >= 0 ? ACTIONS.ATTACK : ACTIONS.DEFEND
-        // console.log(`Has ${JSON.stringify(hand1)} from ${JSON.stringify([game.sharedCard, game.player1.card1, game.player2.card2])} -> ${game.player1.action }`)
+    if (useAi) {
+        if (isRoundOver) {
+            game.player1.action = (
+                (game.player1.card1.value >= 7 && game.player1.card1.suit == game.sharedCard.suit) ||
+                (game.player1.card1.value >= 7 && game.player1.card1.suit != game.sharedCard.suit) ||
+                game.player1.card1.value == game.sharedCard.value)
+                ? ACTIONS.ATTACK : ACTIONS.DEFEND
+        } else {
+            const hand1 = computeHand(game.sharedCard, game.player1.card1, game.player1.card2)
+            const thresholdHand = { type: HAND_TYPES.PAIR, values: [2, 1, 1] }
+            game.player1.action = compareHands(hand1, thresholdHand) >= 0 ? ACTIONS.ATTACK : ACTIONS.DEFEND
+            // console.log(`Has ${JSON.stringify(hand1)} from ${JSON.stringify([game.sharedCard, game.player1.card1, game.player2.card2])} -> ${game.player1.action }`)
+        }
     }
 
     const isMatchOver = game.player1.health <= 0 || game.player2.health <= 0
@@ -290,12 +291,15 @@ export async function runGame(game, updateFn, isSimulation) {
         players[pi - 1].gold += players[pi - 1].goldDelta
         players[pi - 1].health += players[pi - 1].healthDelta
     }
-    updateFn()
 
+    // NOTE: always update `lastTick` last to give players maximum time
     if (!isSimulation && (game.player1.health <= 0 || game.player2.health <= 0)) {
         await new Promise(r => setTimeout(r, 5000))
         game.player1.health = STARTING_HEALTH
         game.player2.health = STARTING_HEALTH
+        game.lastTick = new Date()
+        updateFn()
+    } else {
         game.lastTick = new Date()
         updateFn()
     }

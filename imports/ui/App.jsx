@@ -120,7 +120,7 @@ export const Game = ({ game }) => {
   useEffect(() => {
     const timer = Meteor.setInterval(() => {
       // NOTE: we set it to slightly less than the server game tick to give the player some room for latency / error
-      setGameTime(Math.max(GAME_TICK - 100 - (new Date() - game.lastTick), 0));
+      setGameTime(Math.max(GAME_TICK - 50 - (new Date() - game.lastTick), 0));
     }, 20);
     return () => Meteor.clearInterval(timer);
   }, [game]);
@@ -137,44 +137,6 @@ export const Game = ({ game }) => {
   };
 
   return <div className="full-width">
-    <div>{gameTime}</div>
-    <div className="stats">
-      <div className="stat money-stat">
-        ${myPlayer.gold}
-        {myPlayer.goldDelta != 0 && <div key={"my-money-" + game.round} className="stat-floater">+${myPlayer.goldDelta}</div>}
-      </div>
-      <div className="stat health-stat">
-        {myPlayer.health}HP
-        {myPlayer.healthDelta != 0 && <div key={"my-health-" + game.round} className="stat-floater">{myPlayer.healthDelta}</div>}
-      </div>
-      <LastAction key={"my-action-" + game.round * 2 + game.turn + myPlayer.card3.suit} action={myPlayer.lastAction} />
-      <div className="spacer" />
-      <div className="spacer" />
-      <div className="spacer" />
-      <LastAction key={"their-action-" + game.round * 2 + game.turn + myPlayer.card3.suit} action={myPlayer.theirLastAction} />
-      <div className="stat money-stat">
-        ${theirPlayer.gold}
-        {theirPlayer.goldDelta != 0 && <div key={"their-money-" + game.round} className="stat-floater">+${theirPlayer.goldDelta}</div>}
-      </div>
-      <div className="stat health-stat">
-        {theirPlayer.health}HP
-        {theirPlayer.healthDelta != 0 && <div key={"their-health-" + game.round} className="stat-floater">{theirPlayer.healthDelta}</div>}
-      </div>
-    </div>
-    <div className="cards">
-      <GoldCard card={myPlayer.goldCard} />
-      <Card card={myPlayer.card1} />
-      <Card card={myPlayer.card2} />
-      <div className="spacer" />
-      <GoldCard card={game.sharedGoldCard} />
-      <Card card={game.sharedCard} />
-      <div className="spacer" />
-      {/* <Card card={theirPlayer.card2} /> */}
-      {/* <Card card={theirPlayer.card1} /> */}
-      <Card card={myPlayer.card3} />
-      <Card card={myPlayer.card4} />
-      <GoldCard card={theirPlayer.goldCard} />
-    </div>
 
     <div className="column-holder">
       <div className="deck column">
@@ -185,6 +147,47 @@ export const Game = ({ game }) => {
         <Deck deck={mySortedDeck} />
       </div>
       <div className="column central-column">
+        <div className="stats-holder">
+          <div className="player-stats">
+            <div className="stat money-stat">
+              ${myPlayer.gold}
+              {myPlayer.goldDelta != 0 && <div key={"my-money-" + game.round} className="stat-floater">+${myPlayer.goldDelta}</div>}
+            </div>
+            <div className="stat health-stat">
+              {myPlayer.health}HP
+              {myPlayer.healthDelta != 0 && <div key={"my-health-" + game.round} className="stat-floater">{myPlayer.healthDelta}</div>}
+            </div>
+            <LastAction key={"my-action-" + game.round * 2 + game.turn + myPlayer.card3.suit} action={myPlayer.lastAction} />
+          </div>
+          <progress className="turn-timer" value={gameTime} max="1000"></progress>
+          <div className="player-stats">
+            <LastAction key={"their-action-" + game.round * 2 + game.turn + myPlayer.card3.suit} action={myPlayer.theirLastAction} />
+            <div className="stat money-stat">
+              ${theirPlayer.gold}
+              {theirPlayer.goldDelta != 0 && <div key={"their-money-" + game.round} className="stat-floater">+${theirPlayer.goldDelta}</div>}
+            </div>
+            <div className="stat health-stat">
+              {theirPlayer.health}HP
+              {theirPlayer.healthDelta != 0 && <div key={"their-health-" + game.round} className="stat-floater">{theirPlayer.healthDelta}</div>}
+            </div>
+          </div>
+        </div>
+        <div className="cards-holder">
+          <div className="player-cards">
+            <GoldCard card={myPlayer.goldCard} />
+            <Card card={myPlayer.card1} />
+            <Card card={myPlayer.card2} />
+          </div>
+          <div className="player-cards">
+            <GoldCard card={game.sharedGoldCard} />
+            <Card card={game.sharedCard} />
+          </div>
+          <div className="player-cards">
+            <Card card={myPlayer.card3} />
+            <Card card={myPlayer.card4} />
+            <GoldCard card={theirPlayer.goldCard} />
+          </div>
+        </div>
         <div className="actions column">
           <button className={`action-button action-defend ${myPlayer.action == ACTIONS.DEFEND ? "action-selected" : ""}`} onClick={defendClick}>Defend</button>
           <button className={`action-button action-attack ${myPlayer.action == ACTIONS.ATTACK ? "action-selected" : ""}`} onClick={attackClick}>Attack</button>
@@ -194,7 +197,9 @@ export const Game = ({ game }) => {
             <BuyItem key={index} item={item} canBuy={item.cost <= myPlayer.gold} setHoveredSymbol={setHoveredSymbol} />
           ))}
         </div>
-        <SymbolHelp symbol={hoveredSymbol} />
+        <div className="symbol-help">
+          <SymbolHelp symbol={hoveredSymbol} />
+        </div>
         <ul>
           {myPlayer.items.map((item, index) => (
             <Item key={index} item={item} />

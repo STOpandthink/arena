@@ -7,7 +7,7 @@ async function processGameTick(game) {
   function updateFn() {
     GamesCollection.updateAsync({ _id: game._id }, { $set: game });
   }
-  return await runGame(game, updateFn, false)
+  return await runGame(game, updateFn, false, !Meteor.isProduction)
 }
 
 Meteor.startup(async () => {

@@ -1,6 +1,14 @@
 {
+    "packages": {
+        "mongo": {
+            "options": {
+                "tlsAllowInvalidCertificates": true
+            }
+        }
+    },
     "galaxy.meteor.com": {
         "env": {
+            "MONGO_URL": "mongodb://stopandthink:iazvfytiEBnCkcCPY@SG-eugalaxycluster-38731.servers.mongodirector.com:27017,SG-eugalaxycluster-38732.servers.mongodirector.com:27017/arena-eu-meteorapp-com?replicaSet=RS-eugalaxycluster-0&ssl=true"
         }
     }
 }

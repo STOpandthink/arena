@@ -11,10 +11,6 @@ body {
   width: 100%;
 }
 
-.spacer {
-  width: 200px;
-}
-
 @keyframes fadein {
   0% {
     opacity: 0.0;
@@ -36,7 +32,13 @@ body {
   animation-timing-function: ease-in;
 }
 
-.stats * {
+.stats-holder {
+  display: flex;
+  flex-direction: row;
+  justify-content: space-between;
+}
+
+.player-stats > *{
   display: inline-block;
 }
 
@@ -78,6 +80,16 @@ body {
   animation-iteration-count: 1;
   animation-fill-mode: both;
   animation-timing-function: ease-in;
+}
+
+.cards-holder {
+  display: flex;
+  flex-direction: row;
+  justify-content: space-between;
+}
+
+.player-cards > * {
+  display: inline-block;
 }
 
 .actions * {
@@ -161,9 +173,11 @@ body {
     width: 100%;
 
     & > .item-left-side {
+      display: inline-block;
       /* width: 30%; */
     }
     & > .item-right-side {
+      display: inline-block;
       /* width: auto; */
     }
   }
@@ -247,6 +261,12 @@ body {
   }
 }
 
+.symbol-help {
+  text-wrap: wrap;
+  height: 120px;
+  max-height: 120px;
+}
+
 .column-holder {
   width: 100%;
   display: flex;
@@ -313,4 +333,8 @@ body {
 /* Hidden */
 .card_suit0 {
   background-color: gray;
+}
+
+.turn-timer {
+  margin: auto;
 }
