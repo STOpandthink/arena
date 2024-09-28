@@ -1,18 +1,9 @@
-export const GAME_TICK = 1000;
-export const STARTING_HEALTH = 200;
-export const MAX_ITEMS_FOR_SALE = 5;
-export const ALL_IN_MULTIPLIER = 3;
-export const FULL_DAMAGE_MULT = 1.0;
-export const HALF_DAMAGE_MULT = 0.3;
-export const GOLD_FOR_WIN = 50;
-
-export const VALUE_COUNT = 10;
-export const SUIT_COUNT = 2;
-
 export const SUITS = Object.freeze({
     BLANK: 0,
     WHITE: 1,
     BLACK: 2,
+    TEAL: 3,
+    PURPLE: 4,
 })
 
 export const ACTIONS = Object.freeze({

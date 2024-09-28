@@ -29,7 +29,7 @@ Meteor.methods({
     } else if (game.player2.id === undefined) {
       gameId = game._id
       console.log(`...joined to existing game ${game._id}.`)
-      await GamesCollection.updateAsync({ _id: game._id }, { $set: { player2: getNewPlayer(this.userId, 2), text: "Ready!" } });
+      await GamesCollection.updateAsync({ _id: game._id }, { $set: { player2: getNewPlayer(game, this.userId, 2), text: "Ready!" } });
       async function gameLoop() {
         // TODO: if the only thing that modifies our game object is this function call, then, in theory, we don't need to get the game
         // object from DB each time
@@ -40,6 +40,15 @@ Meteor.methods({
     }
     await PlayersCollection.updateAsync({ _id: this.userId }, { $set: { gameId } });
     return this.userId;
+  },
+
+  async setReady() {
+    const player = await PlayersCollection.findOneAsync({ _id: this.userId });
+    const game = await GamesCollection.findOneAsync({ _id: player.gameId });
+    const playerIndex = game.player1.id == player._id ? 1 : 2;
+    let update = {}
+    update[`player${playerIndex}.isReady`] = true
+    await GamesCollection.updateAsync({ _id: game._id }, { $set: update });
   },
 
   async setPlayerAction(action) {

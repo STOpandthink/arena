@@ -3,7 +3,7 @@ import { useEffect, useState } from "react";
 import { useTracker, useSubscribe } from "meteor/react-meteor-data";
 import { GamesCollection, PlayersCollection } from "/imports/api/Game";
 import { SymbolHelp } from "./SymbolHelp";
-import { GAME_TICK, ACTIONS, SYMBOLS, SUITS, VALUE_COUNT } from "../api/consts";
+import { ACTIONS, SYMBOLS, SUITS } from "../api/consts";
 
 export const Card = ({ card }) => {
   return <div className={`${card.small ? "small-card" : "card"} card_suit${card.suit}`}>{card.value}</div>;
@@ -91,11 +91,18 @@ export const Deck = ({ deck }) => {
   ))
 };
 
-function getSortedDeck(player) {
+function getSortedDeck(game, player) {
   const sortedDeck = [];
-  const suitCounts = [0, 0]
-  for (let value = 1; value <= VALUE_COUNT; value++) {
-    sortedDeck.push([{ value, suit: SUITS.WHITE, count: 0, small: true }, { value, suit: SUITS.BLACK, count: 0, small: true }])
+  for (let value = game.c.VALUE_COUNT; value >= 1; value--) {
+    const sortedDeckRow = [];
+    for (let suit = 1; suit <= game.c.SUIT_COUNT; suit++) {
+      sortedDeckRow.push({ value, suit, count: 0, small: true })
+    }
+    sortedDeck.push(sortedDeckRow)
+  }
+  const suitCounts = []
+  for (let suit = 1; suit <= game.c.SUIT_COUNT; suit++) {
+    suitCounts.push(0)
   }
   for (const card of player.deck) {
     sortedDeck[card.value - 1][card.suit - 1].count += 1
@@ -114,13 +121,13 @@ export const Game = ({ game }) => {
   const [gameTime, setGameTime] = useState(0);
   const [hoveredSymbol, setHoveredSymbol] = useState(-1);
 
-  const [mySortedDeck, mySuitCounts] = getSortedDeck(myPlayer);
-  const [theirSortedDeck, theirSuitCounts] = getSortedDeck(theirPlayer);
+  const [mySortedDeck, mySuitCounts] = getSortedDeck(game, myPlayer);
+  const [theirSortedDeck, theirSuitCounts] = getSortedDeck(game, theirPlayer);
 
   useEffect(() => {
     const timer = Meteor.setInterval(() => {
       // NOTE: we set it to slightly less than the server game tick to give the player some room for latency / error
-      setGameTime(Math.max(GAME_TICK - 50 - (new Date() - game.lastTick), 0));
+      setGameTime(Math.max(game.c.GAME_TICK - 50 - (new Date() - game.lastTick), 0));
     }, 20);
     return () => Meteor.clearInterval(timer);
   }, [game]);
@@ -141,14 +148,19 @@ export const Game = ({ game }) => {
     <div className="column-holder">
       <div className="deck column">
         <div className="deck-row">
-          <div className="deck-row-entry">{mySuitCounts[SUITS.WHITE - 1]}W</div>
-          <div className="deck-row-entry">{mySuitCounts[SUITS.BLACK - 1]}B</div>
+          {mySuitCounts.map((suitCount, suitIndex) => (
+            <div key={suitIndex} className="deck-row-entry">{suitCount}</div>
+          ))}
         </div>
         <Deck deck={mySortedDeck} />
       </div>
       <div className="column central-column">
         <div className="stats-holder">
           <div className="player-stats">
+            <div>{game.ultimateWinnerIndex === myPlayer.index ? "WINNER!!!" : ""}</div>
+            <div className="stat">
+              {myPlayer.victories}⭐
+            </div>
             <div className="stat money-stat">
               ${myPlayer.gold}
               {myPlayer.goldDelta != 0 && <div key={"my-money-" + game.round} className="stat-floater">+${myPlayer.goldDelta}</div>}
@@ -170,6 +182,10 @@ export const Game = ({ game }) => {
               {theirPlayer.health}HP
               {theirPlayer.healthDelta != 0 && <div key={"their-health-" + game.round} className="stat-floater">{theirPlayer.healthDelta}</div>}
             </div>
+            <div className="stat">
+              {theirPlayer.victories}⭐
+            </div>
+            <div>{game.ultimateWinnerIndex === theirPlayer.index ? "WINNER!!!" : ""}</div>
           </div>
         </div>
         <div className="cards-holder">
@@ -221,15 +237,25 @@ export const Game = ({ game }) => {
   </div>
 };
 
-export const App = () => {
+export const LobbyScreen = () => {
   const isLoadingGames = useSubscribe("games");
   const game = useTracker(() => GamesCollection.findOne());
+
+  const setReady = () => {
+    Meteor.callAsync("setReady")
+  };
 
   if (isLoadingGames()) {
     return <div>Loading...</div>;
   }
-  if (game.player2.id === undefined) {
-    return <div>{game.text}</div>
+  const isEveryoneReady = game.player1.isReady && game.player2.isReady
+  if (!isEveryoneReady) {
+    return <div>
+      <div>{game.text}</div>
+      <div><pre><code>{JSON.stringify(game.c).replaceAll(",", "\n")}</code></pre></div>
+      <div>Player 1 is {game.player1.isReady ? "" : "not "} ready; Player 2 is {game.player2.isReady ? "" : "not "} ready</div>
+      <button onClick={setReady}>Ready</button>
+    </div>
   }
 
   return <div>

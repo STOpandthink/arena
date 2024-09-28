@@ -6,9 +6,9 @@ export const SymbolHelp = ({ symbol }) => {
   if (symbol < 0) return <span />
   else if (symbol == SYMBOLS.DAGGER) {
     return <span>
-      Level 3: Deal 1 damage to opponent any time you attack <br/>
-      Level 6: ...also, deal 3 damage to opponent when defending second turn <br/>
-      Level 9: ...also, after an all-in, pernamently add a 2 of a random color to your deck
+      Level 3: When you go all-in and you have a card that's the lowest value in your deck, discard it and deal that much damage to your opponent<br/>
+      Level 6: ...also, perform the same check when defending second turn <br/>
+      Level 9: Instead, do this at the end of each round
     </span>
   } else if (symbol == SYMBOLS.SWORD) {
     return <span>

@@ -2,7 +2,7 @@ import assert from "assert";
 import { DQNAgent } from "@neurosity/reinforcejs";
 
 import { getNewGame, runGame, mlEnvFromGame, computeHand, compareHands } from "/server/game";
-import { ALL_IN_MULTIPLIER, FULL_DAMAGE_MULT, HALF_DAMAGE_MULT, HAND_TYPES, ACTIONS } from "/imports/api/consts";
+import { HAND_TYPES, ACTIONS } from "/imports/api/consts";
 
 describe("meteor-app", function () {
   it("package.json has correct name", async function () {

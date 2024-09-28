@@ -1,7 +1,7 @@
 import React from "react";
 import { createRoot } from "react-dom/client";
 import { Meteor } from "meteor/meteor";
-import { App } from "/imports/ui/App";
+import { LobbyScreen } from "/imports/ui/App";
 
 Meteor.startup(() => {
   const container = document.getElementById("react-target");
@@ -9,7 +9,7 @@ Meteor.startup(() => {
 
   Meteor.callAsync("createPlayer").then((userId) => {
       Meteor.connection.setUserId(userId);
-      root.render(<App />);
+      root.render(<LobbyScreen />);
   });
 
   const pressKeyHandle = e => {

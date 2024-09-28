@@ -1,19 +1,17 @@
-import {
-    GAME_TICK, ALL_IN_MULTIPLIER, FULL_DAMAGE_MULT, HALF_DAMAGE_MULT, VALUE_COUNT, SUIT_COUNT, HAND_TYPES, SUITS, ACTIONS, SYMBOLS,
-    MAX_ITEMS_FOR_SALE, STARTING_HEALTH, GOLD_FOR_WIN
-} from "/imports/api/consts";
+import { HAND_TYPES, SUITS, ACTIONS, SYMBOLS, } from "/imports/api/consts";
 
-function populateDefaultDeck(deck) {
-    for (let value = 1; value <= VALUE_COUNT; value++) {
-        for (let suit = 1; suit <= SUIT_COUNT; suit++) {
+function populateDefaultDeck(game, deck) {
+    for (let value = 1; value <= game.c.VALUE_COUNT; value++) {
+        for (let suit = 1; suit <= game.c.SUIT_COUNT; suit++) {
             deck.push({value: value, suit: suit})
         }
     }
 }
 
-export function getNewPlayer(playerId, index) {
+export function getNewPlayer(game, playerId, index) {
     const player = {
         id: playerId,
+        isReady: false,
         index: index,
         action: ACTIONS.DEFEND,
         lastAction: ACTIONS.DEFEND,
@@ -23,7 +21,8 @@ export function getNewPlayer(playerId, index) {
         card3: { value: 0, suit: SUITS.BLANK },
         card4: { value: 0, suit: SUITS.BLANK },
         goldCard: { value: 0 },
-        health: STARTING_HEALTH,
+        victories: 0,
+        health: game.c.STARTING_HEALTH,
         healthDelta: 0,
         damage: 10,
         gold: 0,
@@ -35,41 +34,57 @@ export function getNewPlayer(playerId, index) {
     for (let i = 1; i < SYMBOLS.MAX; i++) {
         player.symbolCounts.push(0)
     }
-    populateDefaultDeck(player.deck)
+    populateDefaultDeck(game, player.deck)
     return player
 }
 
-function getNewItem(index) {
+function getNewItem(game, index) {
     const item = {
         index: index,
         "type": "card",
-        "cost": 30,
+        "cost": 15,
         "symbols": [],
-        ...getRandomCard(),
+        ...getRandomCard(game),
     }
     for (let i = 0; i < getRandInt(0, 2); i++) {
         item.symbols.push(getRandInt(1, SYMBOLS.MAX - 1))
     }
+    item.cost += item.value + 5 * item.symbols.length
     return item;
 }
 
 export function getNewGame(player1UserId) {
     const game = {
+        c: {
+            GAME_TICK: 1000,
+            STARTING_HEALTH: getRandInt(150, 250), // 200,
+            MAX_ITEMS_FOR_SALE: 5,
+            ALL_IN_MULTIPLIER: getRandInt(25, 35) / 10, // 3.0
+            FULL_DAMAGE_MULT: getRandInt(7, 13) / 10, // 1.0
+            HALF_DAMAGE_MULT: getRandInt(3, 6) / 10, // 0.45
+            GOLD_FOR_WIN: getRandInt(4, 10) * 10, //
+            VALUE_COUNT: getRandInt(10, 20), // 10
+            SUIT_COUNT: getRandInt(2, 4), // 2
+            MATCHES_UNTIL_END: getRandInt(4, 8),
+            WIN_DISCREPANCY: getRandInt(3, 6),
+            FINAL_MATCH_HP_MULT: getRandInt(20, 40) / 10,
+        },
+        name: "game",
         text: "Waiting for 1 more player...",
-        player1: getNewPlayer(player1UserId, 1),
-        player2: getNewPlayer(undefined, 2),
         sharedCard: { value: 0, suit: SUITS.BLANK }, sharedGoldCard: { value: 0 },
-        round: 0, turn: 1,
+        match: 1, round: 0, turn: 1,
         createdAt: new Date(), lastTick: new Date(),
         items: [],
         sharedDeck: [],
     }
-    for (let i = 0; i < MAX_ITEMS_FOR_SALE; i++) {
-        const item = getNewItem(i)
-        item.cost -= (MAX_ITEMS_FOR_SALE - i - 1) * 5
+    game["player1"] = getNewPlayer(game, player1UserId, 1)
+    game["player2"] = getNewPlayer(game, undefined, 2)
+    for (let i = 0; i < game.c.MAX_ITEMS_FOR_SALE; i++) {
+        const item = getNewItem(game, i)
+        item.cost = Math.max(5, item.cost - (game.c.MAX_ITEMS_FOR_SALE - i - 1) * 5)
         game.items.push(item)
     }
-    populateDefaultDeck(game.sharedDeck)
+    populateDefaultDeck(game, game.sharedDeck)
     return game;
 }
 
@@ -80,7 +95,11 @@ export function mlEnvFromGame(game) {
     if (game.turn == 1 && hand.type < HAND_TYPES.PAIR && game.player2.card1.suit == game.sharedCard.suit) {
         handType = HAND_TYPES.FLUSH
     }
-    return [game.turn, handType, getTheHandValue(hand)]
+    let myHandValue = game.player2.card1.value;
+    if (game.turn == 2) {
+        myHandValue = Math.max(game.player2.card1.value, game.player2.card2.value);
+    }
+    return [game.turn, handType, myHandValue, myHandValue >= game.sharedCard.value]
 }
 
 function revCompareNumbers(a, b) {
@@ -134,12 +153,16 @@ export function compareHands(hand1, hand2) {
     return 0
 }
 
+function getRand(min, max) {
+    return Math.random() * (max - min + 1) + min;
+}
+
 function getRandInt(min, max) {
     return Math.floor(Math.random() * (max - min + 1)) + min;
 }
 
-function getRandomCard() {
-    return { value: getRandInt(1, VALUE_COUNT), suit: getRandInt(1, SUIT_COUNT) };
+function getRandomCard(game) {
+    return { value: getRandInt(1, game.c.VALUE_COUNT), suit: getRandInt(1, game.c.SUIT_COUNT) };
 }
 
 function getRandomCardFromDeck(deck) {
@@ -157,10 +180,10 @@ function gameLogic(game) {
         game.player1.goldDelta += game.player1.goldCard.value
         game.player2.goldDelta += game.player2.goldCard.value
         if (game.turn == 1) {
-            game[`player${defender.index}`].healthDelta -= Math.floor(HALF_DAMAGE_MULT * attacker.damage)
+            game[`player${defender.index}`].healthDelta -= Math.floor(game.c.HALF_DAMAGE_MULT * attacker.damage)
         } else {
             game[`player${attacker.index}`].goldDelta += game.sharedGoldCard.value
-            game[`player${defender.index}`].healthDelta -= Math.floor(FULL_DAMAGE_MULT * attacker.damage)
+            game[`player${defender.index}`].healthDelta -= Math.floor(game.c.FULL_DAMAGE_MULT * attacker.damage)
         }
     } else if (isTie || (game.player1.action !== ACTIONS.ATTACK && game.player2.action !== ACTIONS.ATTACK)) {
         // Tie OR Both players defended
@@ -171,13 +194,15 @@ function gameLogic(game) {
         const [winner, loser] = comp > 0 ? [game.player1, game.player2] : [game.player2, game.player1]
         const allGold = game.player1.goldCard.value + game.player2.goldCard.value + game.sharedGoldCard.value
         game[`player${winner.index}`].goldDelta += allGold
-        game[`player${loser.index}`].healthDelta -= Math.floor(ALL_IN_MULTIPLIER * winner.damage)
+        game[`player${loser.index}`].healthDelta -= Math.floor(game.c.ALL_IN_MULTIPLIER * winner.damage)
     } else {
         throw new Error(`Unhandled case ${game}`)
     }
 }
 
 export async function runGame(game, updateFn, isSimulation, useAi=true) {
+    if (game.ultimateWinnerIndex !== undefined) return;
+
     const players = [game.player1, game.player2]
     let isRoundOver = game.turn == 2;
     isRoundOver ||= game.player1.action !== ACTIONS.ATTACK || game.player2.action !== ACTIONS.ATTACK;
@@ -255,7 +280,7 @@ export async function runGame(game, updateFn, isSimulation, useAi=true) {
         for (const [i, item] of game.items.entries()) {
             item.cost -= 1;
             if (item.cost < 0 || item.boughtByP1 || item.boughtByP2) {
-                game.items[i] = getNewItem(i)
+                game.items[i] = getNewItem(game, i)
             }
         }
     }
@@ -278,13 +303,19 @@ export async function runGame(game, updateFn, isSimulation, useAi=true) {
         }
     }
 
-    const isMatchOver = game.player1.health <= 0 || game.player2.health <= 0
+    const isMatchOver = (game.player1.health <= 0 || game.player2.health <= 0) && game.player1.health !== game.player2.health
     if (isMatchOver) {
-        // NOTE: make sure that the winning player also has > 0 health
-        if (game.player1.health <= 0 && game.player2.health > 0) {
-            game.player2.goldDelta += GOLD_FOR_WIN
-        } else if (game.player2.health <= 0 && game.player1.health > 0) {
-            game.player1.goldDelta += GOLD_FOR_WIN
+        const winner = game.player1.health > game.player2.health ? game.player1 : game.player2
+        winner.goldDelta += game.c.GOLD_FOR_WIN
+        winner.victories++
+        if (game.match > game.c.MATCHES_UNTIL_END) {
+            // This was the final match
+            game.ultimateWinnerIndex = winner.index
+        } else if (Math.abs(game.player1.victories - game.player2.victories) > game.c.WIN_DISCREPANCY) {
+            // Win through more
+            game.ultimateWinnerIndex = game.player1.victories > game.player2.victories ? game.player1.index : game.player2.index
+        } else {
+            game.match++
         }
     }
     for (let pi = 1; pi <= 2; pi++) {
@@ -293,15 +324,18 @@ export async function runGame(game, updateFn, isSimulation, useAi=true) {
     }
 
     // NOTE: always update `lastTick` last to give players maximum time
-    if (!isSimulation && (game.player1.health <= 0 || game.player2.health <= 0)) {
+    if (!isSimulation && isMatchOver && game.ultimateWinnerIndex === undefined) {
+        updateFn()
         await new Promise(r => setTimeout(r, 5000))
-        game.player1.health = STARTING_HEALTH
-        game.player2.health = STARTING_HEALTH
-        game.lastTick = new Date()
-        updateFn()
-    } else {
-        game.lastTick = new Date()
-        updateFn()
+        game.player1.health = game.c.STARTING_HEALTH
+        game.player2.health = game.c.STARTING_HEALTH
+        if (game.match > game.c.MATCHES_UNTIL_END) {
+            // Final match
+            game.player1.health *= game.c.FINAL_MATCH_HP_MULT
+            game.player2.health *= game.c.FINAL_MATCH_HP_MULT
+        }
     }
-    return GAME_TICK
+    game.lastTick = new Date()
+    updateFn()
+    return game.c.GAME_TICK
 }
