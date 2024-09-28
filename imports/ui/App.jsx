@@ -166,7 +166,7 @@ export const Game = ({ game }) => {
               {myPlayer.goldDelta != 0 && <div key={"my-money-" + game.round} className="stat-floater">+${myPlayer.goldDelta}</div>}
             </div>
             <div className="stat health-stat">
-              {myPlayer.health}HP
+              {Math.round(myPlayer.health)}HP
               {myPlayer.healthDelta != 0 && <div key={"my-health-" + game.round} className="stat-floater">{myPlayer.healthDelta}</div>}
             </div>
             <LastAction key={"my-action-" + game.round * 2 + game.turn + myPlayer.card3.suit} action={myPlayer.lastAction} />
@@ -179,7 +179,7 @@ export const Game = ({ game }) => {
               {theirPlayer.goldDelta != 0 && <div key={"their-money-" + game.round} className="stat-floater">+${theirPlayer.goldDelta}</div>}
             </div>
             <div className="stat health-stat">
-              {theirPlayer.health}HP
+              {Math.round(theirPlayer.health)}HP
               {theirPlayer.healthDelta != 0 && <div key={"their-health-" + game.round} className="stat-floater">{theirPlayer.healthDelta}</div>}
             </div>
             <div className="stat">
@@ -205,8 +205,11 @@ export const Game = ({ game }) => {
           </div>
         </div>
         <div className="actions column">
-          <button className={`action-button action-defend ${myPlayer.action == ACTIONS.DEFEND ? "action-selected" : ""}`} onClick={defendClick}>Defend</button>
-          <button className={`action-button action-attack ${myPlayer.action == ACTIONS.ATTACK ? "action-selected" : ""}`} onClick={attackClick}>Attack</button>
+          <button className={`action-button action-defend ${myPlayer.action == ACTIONS.DEFEND ? "action-selected" : ""}`} onClick={defendClick}>🛡 Defend</button>
+          <button className={`action-button action-attack ${myPlayer.action == ACTIONS.ATTACK ? "action-selected" : ""}`} onClick={attackClick}>⚔️ Attack</button>
+          <div className="final-match">
+            {game.match > game.c.MATCHES_UNTIL_END ? "FINAL MATCH!" : "  MATCH: " + game.match + "/" + game.c.MATCHES_UNTIL_END}
+          </div>
         </div>
         <div className="item-shop">
           {game.items.map((item, index) => (

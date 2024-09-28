@@ -97,8 +97,8 @@ body {
 }
 
 .action-button {
-  width: 220px;
   height: 80px;
+  padding: 0px 10px;
   margin: 50px 20px;
   border: solid;
   border-width: 5px;
@@ -120,7 +120,7 @@ body {
 
 .action-attack {
   border-color: rgb(168, 54, 54);
-  background-color: darkred;
+  background-color: rgb(74, 51, 51);
 }
 
 .action-attack.action-selected {
@@ -130,7 +130,7 @@ body {
 
 .action-defend {
   border-color: rgb(54, 54, 168);
-  background-color: darkblue;
+  background-color: rgb(51, 51, 74);
 }
 
 .action-defend.action-selected {
@@ -348,4 +348,8 @@ body {
 
 .turn-timer {
   margin: auto;
+}
+
+.final-match {
+  font-size: 50px;
 }
