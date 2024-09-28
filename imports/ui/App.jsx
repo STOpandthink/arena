@@ -205,8 +205,8 @@ export const Game = ({ game }) => {
           </div>
         </div>
         <div className="actions column">
-          <button className={`action-button action-defend ${myPlayer.action == ACTIONS.DEFEND ? "action-selected" : ""}`} onClick={defendClick}>🛡 Defend</button>
           <button className={`action-button action-attack ${myPlayer.action == ACTIONS.ATTACK ? "action-selected" : ""}`} onClick={attackClick}>⚔️ Attack</button>
+          <button className={`action-button action-defend ${myPlayer.action == ACTIONS.DEFEND ? "action-selected" : ""}`} onClick={defendClick}>🛡 Defend</button>
           <div className="final-match">
             {game.match > game.c.MATCHES_UNTIL_END ? "FINAL MATCH!" : "  MATCH: " + game.match + "/" + game.c.MATCHES_UNTIL_END}
           </div>
@@ -227,8 +227,9 @@ export const Game = ({ game }) => {
       </div>
       <div className="deck column">
         <div className="deck-row">
-          <div className="deck-row-entry">{theirSuitCounts[SUITS.WHITE - 1]}W</div>
-          <div className="deck-row-entry">{theirSuitCounts[SUITS.BLACK - 1]}B</div>
+          {theirSuitCounts.map((suitCount, suitIndex) => (
+            <div key={suitIndex} className="deck-row-entry">{suitCount}</div>
+          ))}
         </div>
         <Deck deck={theirSortedDeck} />
       </div>

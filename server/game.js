@@ -56,7 +56,7 @@ function getNewItem(game, index) {
 export function getNewGame(player1UserId) {
     const game = {
         c: {
-            GAME_TICK: 1000,
+            GAME_TICK: 2500,
             STARTING_HEALTH: getRandInt(150, 250), // 200,
             MAX_ITEMS_FOR_SALE: 5,
             ALL_IN_MULTIPLIER: getRandInt(25, 35) / 10, // 3.0

@@ -43,8 +43,8 @@ body {
 }
 
 .stat {
-  margin: 20px 20px;
-  font-size: 40px;
+  margin: 10px 10px;
+  font-size: 30px;
   position: relative;
 }
 
@@ -235,6 +235,10 @@ body {
 .deck-row-entry {
   margin: 2px 5px;
   text-align: center;
+}
+
+.deck-row-entry > * {
+  display: inline-block;
 }
 
 .symbol-holders {

@@ -60,6 +60,14 @@ Meteor.methods({
     await GamesCollection.updateAsync({ _id: game._id }, { $set: update });
   },
 
+  async setGameTick() {
+    const player = await PlayersCollection.findOneAsync({ _id: this.userId });
+    const game = await GamesCollection.findOneAsync({ _id: player.gameId });
+    let update = {}
+    update[`game.c.GAME_TICK`] = game.c.GAME_TICK === 1000 ? 2500 : 1000
+    await GamesCollection.updateAsync({ _id: game._id }, { $set: update });
+  },
+
   async buyItem(itemIndex) {
     const player = await PlayersCollection.findOneAsync({ _id: this.userId });
     const game = await GamesCollection.findOneAsync({ _id: player.gameId });
