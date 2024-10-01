@@ -1,12 +1,17 @@
 export const SUITS = Object.freeze({
-    BLANK: 0,
-    WHITE: 1,
-    BLACK: 2,
-    TEAL: 3,
-    PURPLE: 4,
+    // Actual suits
+    BLACK: 0,
+    RED: 1,
+    BLUE: 2,
+    GOLD: 3,
+    // Used to show the back of a hidden card; value is disregarded
+    BLANK: 4,
+    // Used to show a generic card
+    GENERIC: 5,
 })
 
 export const ACTIONS = Object.freeze({
+    NONE: -1,
     DEFEND: 0,
     ATTACK: 1,
 })
@@ -19,6 +24,7 @@ export const HAND_TYPES = Object.freeze({
 });
 
 export const SYMBOLS = Object.freeze({
+    ZERO: 0,
     DAGGER: 15,
     SWORD: 1,
     AXE: 2,
@@ -39,7 +45,7 @@ export const SYMBOLS = Object.freeze({
     MAGIC: 17,
     BERSERK: 19,
     NINJA: 20,
-    MAX: 21,
+    COUNT: 20,
 })
 
 // Warn if overriding existing method

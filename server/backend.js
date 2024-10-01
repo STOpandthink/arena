@@ -1,7 +1,8 @@
 import { Meteor } from 'meteor/meteor';
 import { GamesCollection, PlayersCollection } from "/imports/api/Game";
-import { runGame, getNewPlayer, getNewGame } from "/server/game";
+import { runGame } from "/server/game";
 import { ACTIONS } from "/imports/api/consts";
+import { getNewPlayer, getNewGame } from "./game_utils"
 
 async function processGameTick(game) {
   function updateFn() {
@@ -56,15 +57,7 @@ Meteor.methods({
     const game = await GamesCollection.findOneAsync({ _id: player.gameId });
     const playerIndex = game.player1.id == player._id ? 1 : 2;
     let update = {}
-    update[`player${playerIndex}.action`] = action >= 1 ? ACTIONS.ATTACK : ACTIONS.DEFEND;
-    await GamesCollection.updateAsync({ _id: game._id }, { $set: update });
-  },
-
-  async setGameTick() {
-    const player = await PlayersCollection.findOneAsync({ _id: this.userId });
-    const game = await GamesCollection.findOneAsync({ _id: player.gameId });
-    let update = {}
-    update[`game.c.GAME_TICK`] = game.c.GAME_TICK === 1000 ? 2500 : 1000
+    update[`player${playerIndex}.action`] = action >= ACTIONS.ATTACK ? ACTIONS.ATTACK : ACTIONS.DEFEND;
     await GamesCollection.updateAsync({ _id: game._id }, { $set: update });
   },
 
@@ -77,20 +70,36 @@ Meteor.methods({
     if (gamePlayer.gold < item.cost || item[`boughtByP${playerIndex}`]) {
       return
     }
-    for (const symbol of item.symbols) {
-      gamePlayer.symbolCounts[symbol-1]++;
+    gamePlayer.symbolCounts[item.symbol]++;
+    console.log(item.card)
+    if (item.card.value >= 0) {
+      let valueDelta = 0
+      for (let i = 0; i < game.c.VALUE_COUNT; i++) {
+        if (i != item.card.value && gamePlayer.deck.values[i] >= 1) {
+          gamePlayer.deck.values[i] -= 1
+          valueDelta += 1
+        }
+      }
+      if (i == item.card.value) gamePlayer.deck.values[i] += valueDelta
+    } else {
+      let suitDelta = 0
+      for (let i = 0; i < game.c.SUIT_COUNT; i++) {
+        if (i != item.card.suit && gamePlayer.deck.suits[i] >= 1) {
+          gamePlayer.deck.suits[i] -= 1
+          suitDelta += 1
+        }
+      }
+      if (i == item.card.suit) gamePlayer.deck.suits[i] += suitDelta
     }
     const goldField = `player${playerIndex}.gold`
-    const itemsField = `player${playerIndex}.deck`
+    const deckField = `player${playerIndex}.deck`
     const symbolsField = `player${playerIndex}.symbolCounts`
     const boughtField = `items.$.boughtByP${playerIndex}`
     await GamesCollection.updateAsync({ _id: game._id }, {
       $inc: { [goldField]: -item.cost },
-      $push: { [itemsField]: item },
-      $set: { [symbolsField]: gamePlayer.symbolCounts },
+      $set: { [symbolsField]: gamePlayer.symbolCounts, [deckField]: gamePlayer.deck },
     });
     await GamesCollection.updateAsync({ _id: game._id, "items.index": item.index }, { $set: { [boughtField]: true } })
-    // TODO: if Joker then also add to shared deck
   },
 });
 
@@ -103,8 +112,8 @@ Meteor.publish("games", async function () {
   const otherPlayerIndex = game.player1.id != player._id ? 1 : 2;
   let fields = {}
   fields[`player${otherPlayerIndex}.action`] = 0;
-  // fields[`player${otherPlayerIndex}.card1`] = 0;
-  // fields[`player${otherPlayerIndex}.card2`] = 0;
+  fields[`player${otherPlayerIndex}.card1`] = 0;
+  fields[`player${otherPlayerIndex}.card2`] = 0;
   return GamesCollection.find({ _id: player.gameId }, { fields });
 });
 

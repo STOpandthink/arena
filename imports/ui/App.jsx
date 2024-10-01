@@ -1,16 +1,13 @@
 import React from "react";
 import { useEffect, useState } from "react";
 import { useTracker, useSubscribe } from "meteor/react-meteor-data";
+
 import { GamesCollection, PlayersCollection } from "/imports/api/Game";
 import { SymbolHelp } from "./SymbolHelp";
 import { ACTIONS, SYMBOLS, SUITS } from "../api/consts";
 
-export const Card = ({ card }) => {
-  return <div className={`${card.small ? "small-card" : "card"} card_suit${card.suit}`}>{card.value}</div>;
-};
-
-export const GoldCard = ({ card }) => {
-  return <div className={`card gold_card`}>{card.value}</div>;
+export const Card = ({ card, isSmall }) => {
+  return <div className={`${isSmall ? "small-card" : "card"} card-suit${card.suit}`}>{card.value >= 0 ? "" + (card.value + 1) : ""}</div>;
 };
 
 export const LastAction = ({ action }) => {
@@ -19,7 +16,8 @@ export const LastAction = ({ action }) => {
 
 export const Symbol = ({ symbol, setHoveredSymbol }) => {
   let text = "?"
-  if (symbol == SYMBOLS.DAGGER) text = "🔪️️"
+  if (symbol == SYMBOLS.ZERO) text = "0"
+  else if (symbol == SYMBOLS.DAGGER) text = "🔪️️"
   else if (symbol == SYMBOLS.SWORD) text = "🗡️️"
   else if (symbol == SYMBOLS.AXE) text = "🪓️️"
   else if (symbol == SYMBOLS.SPEAR) text = "🔱️️"
@@ -48,68 +46,46 @@ export const SymbolHolder = ({ symbolCounts, setHoveredSymbol }) => {
     {symbolCounts.map((count, index) => (
       <div key={index}>
         <span>{count}</span>
-        <Symbol symbol={index + 1} setHoveredSymbol={setHoveredSymbol} />
+        <Symbol symbol={index} setHoveredSymbol={setHoveredSymbol} />
       </div>
     ))}
   </div>
 }
 
-export const BuyItem = ({ item, canBuy, setHoveredSymbol }) => {
-  const buyItem = () => Meteor.callAsync("buyItem", item.index);
-  return <button className="item-button" onClick={buyItem}>
+export const BuyItem = ({ item, canBuy, setHoveredSymbol, isBought, buyItem }) => {
+  return <button className={"item-button " + (isBought ? "item-bought": "")} onClick={() => buyItem(item.index)}>
     <div className="item-top-side">
       <div className="item-left-side">
-        <div className="item-index">{item.index + 1}</div>
+        <div className="item-index">{item.index}</div>
         <div>
-          {item.symbols.map((symbol, symbolIndex) => (
-            <Symbol key={symbolIndex} symbol={symbol} setHoveredSymbol={setHoveredSymbol} />
-          ))}
+          <Symbol symbol={item.symbol} setHoveredSymbol={setHoveredSymbol} />
         </div>
       </div>
       <div className="item-right-side">
-        <Card card={item} />
+        <Card card={item.card} isSmall={true} />
       </div>
     </div>
     <div className={`item-price ` + (canBuy ? "item-can-buy" : "")}>${item.cost}</div>
   </button>;
 };
 
-export const Item = ({ item }) => {
-  return <li>{item.name}</li>;
-};
-
 export const Deck = ({ deck }) => {
-  return deck.map((cards, deckRowIndex) => (
-    <div key={deckRowIndex} className="deck-row">
-      {cards.map((card, cardIndex) => (
-        <div key={cardIndex} className="deck-row-entry">
-          <span>{card.count}</span>
-          <Card card={card} />
-        </div>
-      ))}
-    </div>
-  ))
+  return <div>
+    {deck.suits.map((suitProb, suitIndex) => (
+      <div key={suitIndex} className="deck-row">
+        {suitProb}%
+        <Card card={{value: -1, suit: suitIndex}} isSmall={true} />
+      </div>
+    ))}
+    <hr/>
+    {deck.values.map((valueProb, valueIndex) => (
+      <div key={valueIndex} className="deck-row">
+        {valueProb}%
+        <Card card={{value: valueIndex, suit: SUITS.GENERIC}} isSmall={true} />
+      </div>
+    ))}
+  </div>
 };
-
-function getSortedDeck(game, player) {
-  const sortedDeck = [];
-  for (let value = game.c.VALUE_COUNT; value >= 1; value--) {
-    const sortedDeckRow = [];
-    for (let suit = 1; suit <= game.c.SUIT_COUNT; suit++) {
-      sortedDeckRow.push({ value, suit, count: 0, small: true })
-    }
-    sortedDeck.push(sortedDeckRow)
-  }
-  const suitCounts = []
-  for (let suit = 1; suit <= game.c.SUIT_COUNT; suit++) {
-    suitCounts.push(0)
-  }
-  for (const card of player.deck) {
-    sortedDeck[card.value - 1][card.suit - 1].count += 1
-    suitCounts[card.suit - 1]++;
-  }
-  return [sortedDeck, suitCounts];
-}
 
 export const Game = ({ game }) => {
   const isLoadingPlayers = useSubscribe("players");
@@ -118,11 +94,10 @@ export const Game = ({ game }) => {
   // const players = useTracker(() => PlayersCollection.find({}).fetch());
   const myPlayer = game.player1.id == Meteor.userId() ? game.player1 : game.player2;
   const theirPlayer = game.player1.id != Meteor.userId() ? game.player1 : game.player2;
+  const [lastRound, setLastRound] = useState(game.round);
   const [gameTime, setGameTime] = useState(0);
   const [hoveredSymbol, setHoveredSymbol] = useState(-1);
-
-  const [mySortedDeck, mySuitCounts] = getSortedDeck(game, myPlayer);
-  const [theirSortedDeck, theirSuitCounts] = getSortedDeck(game, theirPlayer);
+  const [boughtItemFlags, setBoughtItemFlags] = useState(Array(game.c.MAX_ITEMS_FOR_SALE).fill(false));
 
   useEffect(() => {
     const timer = Meteor.setInterval(() => {
@@ -130,29 +105,29 @@ export const Game = ({ game }) => {
       setGameTime(Math.max(game.c.GAME_TICK - 50 - (new Date() - game.lastTick), 0));
     }, 20);
     return () => Meteor.clearInterval(timer);
-  }, [game]);
+  }, [game.lastTick]);
+  useEffect(() => {
+    setLastRound(game.round)
+    setBoughtItemFlags(Array(game.c.MAX_ITEMS_FOR_SALE).fill(false));
+    return () => {};
+  }, [game.round])
 
   if (isLoadingPlayers()) {
     return <div>Loading...</div>;
   }
 
-  const attackClick = () => {
-    Meteor.callAsync("setPlayerAction", ACTIONS.ATTACK)
-  };
-  const defendClick = () => {
-    Meteor.callAsync("setPlayerAction", ACTIONS.DEFEND)
+  const attackClick = () => { Meteor.callAsync("setPlayerAction", ACTIONS.ATTACK) };
+  const defendClick = () => { Meteor.callAsync("setPlayerAction", ACTIONS.DEFEND) };
+  const buyItem = (itemIndex) => {
+    boughtItemFlags[itemIndex] = true
+    setBoughtItemFlags(boughtItemFlags)
+    Meteor.callAsync("buyItem", itemIndex);
   };
 
   return <div className="full-width">
-
     <div className="column-holder">
       <div className="deck column">
-        <div className="deck-row">
-          {mySuitCounts.map((suitCount, suitIndex) => (
-            <div key={suitIndex} className="deck-row-entry">{suitCount}</div>
-          ))}
-        </div>
-        <Deck deck={mySortedDeck} />
+        <Deck deck={myPlayer.deck} />
       </div>
       <div className="column central-column">
         <div className="stats-holder">
@@ -171,7 +146,7 @@ export const Game = ({ game }) => {
             </div>
             <LastAction key={"my-action-" + game.round * 2 + game.turn + myPlayer.card3.suit} action={myPlayer.lastAction} />
           </div>
-          <progress className="turn-timer" value={gameTime} max="1000"></progress>
+          <progress className="turn-timer" value={gameTime} max={game.c.GAME_TICK}></progress>
           <div className="player-stats">
             <LastAction key={"their-action-" + game.round * 2 + game.turn + myPlayer.card3.suit} action={myPlayer.theirLastAction} />
             <div className="stat money-stat">
@@ -190,48 +165,35 @@ export const Game = ({ game }) => {
         </div>
         <div className="cards-holder">
           <div className="player-cards">
-            <GoldCard card={myPlayer.goldCard} />
-            <Card card={myPlayer.card1} />
-            <Card card={myPlayer.card2} />
+            <Card card={myPlayer.card1} isSmall={false} />
+            <Card card={myPlayer.card2} isSmall={false} />
           </div>
           <div className="player-cards">
-            <GoldCard card={game.sharedGoldCard} />
-            <Card card={game.sharedCard} />
+            <Card card={game.sharedCard} isSmall={false} />
           </div>
           <div className="player-cards">
-            <Card card={myPlayer.card3} />
-            <Card card={myPlayer.card4} />
-            <GoldCard card={theirPlayer.goldCard} />
+            <Card card={myPlayer.card3} isSmall={false} />
+            <Card card={myPlayer.card4} isSmall={false} />
           </div>
         </div>
         <div className="actions column">
-          <button className={`action-button action-attack ${myPlayer.action == ACTIONS.ATTACK ? "action-selected" : ""}`} onClick={attackClick}>⚔️ Attack</button>
-          <button className={`action-button action-defend ${myPlayer.action == ACTIONS.DEFEND ? "action-selected" : ""}`} onClick={defendClick}>🛡 Defend</button>
+          <button className={`action-button action-attack ${myPlayer.action == ACTIONS.ATTACK ? "action-selected" : ""}`} onClick={attackClick}>⚔️ ATTACK</button>
+          <button className={`action-button action-defend ${myPlayer.action == ACTIONS.DEFEND ? "action-selected" : ""}`} onClick={defendClick}>🛡 DEFEND</button>
           <div className="final-match">
             {game.match > game.c.MATCHES_UNTIL_END ? "FINAL MATCH!" : "  MATCH: " + game.match + "/" + game.c.MATCHES_UNTIL_END}
           </div>
         </div>
         <div className="item-shop">
           {game.items.map((item, index) => (
-            <BuyItem key={index} item={item} canBuy={item.cost <= myPlayer.gold} setHoveredSymbol={setHoveredSymbol} />
+            <BuyItem key={index} item={item} canBuy={item.cost <= myPlayer.gold} isBought={boughtItemFlags[index]} setHoveredSymbol={setHoveredSymbol} buyItem={buyItem} />
           ))}
         </div>
         <div className="symbol-help">
           <SymbolHelp symbol={hoveredSymbol} />
         </div>
-        <ul>
-          {myPlayer.items.map((item, index) => (
-            <Item key={index} item={item} />
-          ))}
-        </ul>
       </div>
       <div className="deck column">
-        <div className="deck-row">
-          {theirSuitCounts.map((suitCount, suitIndex) => (
-            <div key={suitIndex} className="deck-row-entry">{suitCount}</div>
-          ))}
-        </div>
-        <Deck deck={theirSortedDeck} />
+        <Deck deck={theirPlayer.deck} />
       </div>
     </div>
     <div className="symbol-holders">

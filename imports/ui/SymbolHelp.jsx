@@ -6,27 +6,31 @@ export const SymbolHelp = ({ symbol }) => {
   if (symbol < 0) return <span />
   else if (symbol == SYMBOLS.DAGGER) {
     return <span>
-      Level 3: When you go all-in and you have a card that's the lowest value in your deck, discard it and deal that much damage to your opponent<br/>
-      Level 6: ...also, perform the same check when defending second turn <br/>
-      Level 9: Instead, do this at the end of each round
+      Level 3: After end of round where you attacked, deal that much damage to your opponent<br/>
+      Level 6: ...also, perform the same check when defending too<br/>
+      Level 9: ...instead, decrease the probability of this value. If it's zero, transfer the dagger effect to one value higher.<br/>
+      Common: 1, uncommon: 2, rare: 3
     </span>
   } else if (symbol == SYMBOLS.SWORD) {
     return <span>
       Level 3: +2 damage when attacking on the first turn (any additional damage is added before the turn 1 multiplier is applied) <br/>
       Level 6: ...also, +4 damage when attacking on the first turn. Keep any card greater than 8. <br/>
-      Level 9: ...also, +6 damage when attacking on the first turn. If successful, your next card is the highest valued card in your deck.
+      Level 9: ...also, +6 damage when attacking on the first turn. If successful, your next card is the highest valued card in your deck. <br/>
+      Common: 4, uncommon: 5, rare: 6
     </span>
   } else if (symbol == SYMBOLS.AXE) {
     return <span>
       Level 3: +2 damage when attacking a defending opponent on the second turn <br/>
       Level 6: ...also, +3 damage when attacking a defending opponent on the second turn <br/>
-      Level 9: ...also, add damage equal to the value of the highest card in your hand when attacking a defending opponent on the second turn
+      Level 9: ...also, add damage equal to the value of the highest card in your hand when attacking a defending opponent on the second turn <br/>
+      Common: 6, uncommon: 7, rare: 8
     </span>
   } else if (symbol == SYMBOLS.SPEAR) {
     return <span>
       Level 3: +2 damage to all-in attacks (any additional damage is added before the all-in multiplier is applied) <br/>
       Level 6: ...also, +3 damage to all-in attacks <br/>
-      Level 9: ...also, if your all-in attack is successful, remove the lowest card in your hand from your deck pernamently and add that much damage
+      Level 9: ...also, if your all-in attack is successful, remove the lowest card in your hand from your deck pernamently and add that much damage <br/>
+      Common: 8, uncommon: 9, rare: 10
     </span>
   } else if (symbol == SYMBOLS.BOMB) {
     return <span>
